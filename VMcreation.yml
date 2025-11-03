@@ -50,4 +50,4 @@ stages:
           echo "Applying Terraform plan..."
           terraform apply -auto-approve \
             -var="admin_username=labadmin" \
-            -var="admin_password=$(admin_password)"  # Store as a secure pipeline variable
+            -var="admin_password=$ADMIN_PASSWORD" # Store as a secure pipeline variable
