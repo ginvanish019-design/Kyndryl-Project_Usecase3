@@ -1,10 +1,71 @@
 # azure-pipelines.yml
 trigger:
-- main
 
+  branches:
+
+    include:
+
+      - main
+ 
 pool:
-  vmImage: 'ubuntu-latest'
 
-steps:
-- script: echo "Hello, Azure DevOps!"
-  displayName: 'Run a simple script'
+  name: 'Anish_Agent'
+ 
+variables:
+
+  - name: TF_VERSION
+
+    value: '1.5.7'  # Set your Terraform version
+ 
+stages:
+
+- stage: DeployTerraform
+
+  displayName: "Deploy Infrastructure"
+
+  jobs:
+
+  - job: TerraformJob
+
+    displayName: "Terraform Apply"
+
+    steps:
+ 
+    - task: TerraformInstaller@1
+
+      displayName: "Install Terraform"
+
+      inputs:
+
+        terraformVersion: '$(TF_VERSION)'
+ 
+    - checkout: self
+
+      displayName: "Checkout repository"
+ 
+    - task: AzureCLI@2
+
+      displayName: "Run Terraform Init and Apply"
+
+      inputs:
+
+        azureSubscription: 'kyndryl2'  # Replace with your actual Azure service connection name
+
+        scriptType: 'bash'
+
+        scriptLocation: 'inlineScript'
+
+        inlineScript: |
+
+          echo "Initializing Terraform..."
+
+          terraform init
+ 
+          echo "Applying Terraform plan..."
+
+          terraform apply -auto-approve \
+
+            -var="admin_username=labadmin" \
+
+            -var="admin_password=YourSecureP@ssword123"  # Secure pipeline variable
+ 
