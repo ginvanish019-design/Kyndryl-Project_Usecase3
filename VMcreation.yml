@@ -49,7 +49,7 @@ stages:
 
       inputs:
 
-        azureSubscription: 'kyndryl2'  # Replace with your actual Azure service connection name
+        azureSubscription: 'My_Connection'  # Replace with your actual Azure service connection name
 
         scriptType: 'bash'
 
