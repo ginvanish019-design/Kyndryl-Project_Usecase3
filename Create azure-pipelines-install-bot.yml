@@ -1,0 +1,21 @@
+trigger:
+  branches:
+    include:
+      - main
+
+pool:
+  name: 'babu-agent'
+
+steps:
+- checkout: self
+
+- task: UsePythonVersion@0
+  inputs:
+    versionSpec: '3.x'
+
+- script: |
+    echo "🚀 Installing dependencies..."
+    pip install boto3 azure-identity azure-mgmt-compute google-cloud-compute google-auth
+    echo "🌍 Running Multi-Cloud Auto Manager..."
+    python multi_cloud_auto_manager.py
+  displayName: "Run Multi-Cloud Auto Manager"
