@@ -14,13 +14,30 @@ pool:
 steps:
 - checkout: self
 
-- task: UsePythonVersion@0
-  inputs:
-    versionSpec: '3.x'
+# Install Python if missing (works for Ubuntu/Debian-based self-hosted agents)
+- script: |
+    echo "🐍 Checking Python installation..."
+    if ! command -v python3 &> /dev/null
+    then
+        echo "⚙️ Installing Python..."
+        sudo apt update
+        sudo apt install -y python3 python3-pip
+        sudo ln -sf /usr/bin/python3 /usr/local/bin/python
+        sudo ln -sf /usr/bin/pip3 /usr/local/bin/pip
+    else
+        echo "✅ Python already installed"
+    fi
 
+    python --version
+    pip --version
+  displayName: "Install Python (if not already installed)"
+
+# Install dependencies and run your multi-cloud script
 - script: |
     echo "🚀 Installing dependencies..."
+    pip install --upgrade pip
     pip install boto3 azure-identity azure-mgmt-compute google-cloud-compute google-auth
+
     echo "🌍 Running Multi-Cloud Auto Manager..."
     python multi_cloud_auto_manager.py
   displayName: "Run Multi-Cloud Auto Manager"
