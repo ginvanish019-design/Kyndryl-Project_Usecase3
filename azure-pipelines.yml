@@ -4,16 +4,23 @@
 # https://aka.ms/yaml
 
 trigger:
-- main
+  branches:
+    include:
+      - main
 
 pool:
-  vmImage: ubuntu-latest
+  name: 'Anish_Agent'
 
 steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
+- checkout: self
+
+- task: UsePythonVersion@0
+  inputs:
+    versionSpec: '3.x'
 
 - script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+    echo "🚀 Installing dependencies..."
+    pip install boto3 azure-identity azure-mgmt-compute google-cloud-compute google-auth
+    echo "🌍 Running Multi-Cloud Auto Manager..."
+    python multi_cloud_auto_manager.py
+  displayName: "Run Multi-Cloud Auto Manager"
