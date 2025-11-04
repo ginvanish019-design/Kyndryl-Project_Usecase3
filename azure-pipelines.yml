@@ -14,25 +14,35 @@ pool:
 steps:
 - checkout: self
 
-# Install Python if missing (works for Ubuntu/Debian-based self-hosted agents)
+# Step 1: Install Python if not available
 - script: |
-    echo "🐍 Checking Python installation..."
+    echo "🐍 Checking if Python3 is installed..."
     if ! command -v python3 &> /dev/null
     then
-        echo "⚙️ Installing Python..."
-        sudo apt update
-        sudo apt install -y python3 python3-pip
-        sudo ln -sf /usr/bin/python3 /usr/local/bin/python
-        sudo ln -sf /usr/bin/pip3 /usr/local/bin/pip
+        echo "⚙️ Installing Python3 and pip..."
+        sudo apt-get update -y
+        sudo apt-get install -y python3 python3-pip
     else
-        echo "✅ Python already installed"
+        echo "✅ Python3 is already installed."
     fi
 
+    # Create symlinks to ensure 'python' and 'pip' commands work
+    if ! command -v python &> /dev/null
+    then
+        sudo ln -s $(which python3) /usr/local/bin/python
+    fi
+
+    if ! command -v pip &> /dev/null
+    then
+        sudo ln -s $(which pip3) /usr/local/bin/pip
+    fi
+
+    echo "Python path: $(which python)"
     python --version
     pip --version
-  displayName: "Install Python (if not already installed)"
+  displayName: "Install Python (if needed)"
 
-# Install dependencies and run your multi-cloud script
+# Step 2: Install dependencies and run the multi-cloud script
 - script: |
     echo "🚀 Installing dependencies..."
     pip install --upgrade pip
