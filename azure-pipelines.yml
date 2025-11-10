@@ -1,8 +1,3 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
-
 trigger:
   branches:
     include:
@@ -14,40 +9,18 @@ pool:
 steps:
 - checkout: self
 
-# Step 1: Install Python if not available
-- script: |
-    echo "🐍 Checking if Python3 is installed..."
-    if ! command -v python3 &> /dev/null
-    then
-        echo "⚙️ Installing Python3 and pip..."
-        sudo apt-get update -y
-        sudo apt-get install -y python3 python3-pip
-    else
-        echo "✅ Python3 is already installed."
-    fi
+- bash: |
+    echo "🐍 Checking Python version..."
+    python3 --version
+  displayName: "Check Python Version"
 
-    # Create symlinks to ensure 'python' and 'pip' commands work
-    if ! command -v python &> /dev/null
-    then
-        sudo ln -s $(which python3) /usr/local/bin/python
-    fi
+- bash: |
+    echo "📦 Installing Azure SDK dependencies..."
+    python3 -m pip install --upgrade pip --break-system-packages
+    pip install azure-identity azure-mgmt-compute azure-mgmt-resource --break-system-packages
+  displayName: "Install Azure SDKs (Linux)"
 
-    if ! command -v pip &> /dev/null
-    then
-        sudo ln -s $(which pip3) /usr/local/bin/pip
-    fi
-
-    echo "Python path: $(which python)"
-    python --version
-    pip --version
-  displayName: "Install Python (if needed)"
-
-# Step 2: Install dependencies and run the multi-cloud script
-- script: |
-    echo "🚀 Installing dependencies..."
-    pip install --upgrade pip
-    pip install boto3 azure-identity azure-mgmt-compute google-cloud-compute google-auth
-
-    echo "🌍 Running Multi-Cloud Auto Manager..."
-    python multi_cloud_auto_manager.py
+- bash: |
+    echo "🚀 Running Multi-Cloud Auto Manager..."
+    python3 multi_cloud_auto_manager.py
   displayName: "Run Multi-Cloud Auto Manager"
