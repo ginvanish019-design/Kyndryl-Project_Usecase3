@@ -9,31 +9,25 @@ pool:
 steps:
 - checkout: self
 
-# =====================================
-# 🐍 Check Python Version
-# =====================================
+# 🐍 Check Python version
 - bash: |
     echo "🐍 Checking Python version..."
     python3 --version
   displayName: "Check Python Version"
 
-# =====================================
-# 📦 Install Dependencies
-# =====================================
+# 📦 Install dependencies including azure-monitor-query
 - bash: |
-    echo "📦 Installing required Azure SDK packages..."
+    echo "📦 Installing Azure SDK packages..."
     python3 -m pip install --upgrade pip
-    python3 -m pip install --upgrade \
+    python3 -m pip install \
       azure-identity \
       azure-mgmt-compute \
       azure-mgmt-resource \
       azure-monitor-query
-    echo "✅ Dependencies installed successfully."
+    echo "✅ Azure SDKs installed successfully."
   displayName: "Install Azure SDK Dependencies"
 
-# =====================================
-# 🚀 Run Script
-# =====================================
+# 🚀 Run your Python script
 - bash: |
     echo "🚀 Running Multi-Cloud Auto Manager..."
     python3 multi_cloud_auto_manager.py
