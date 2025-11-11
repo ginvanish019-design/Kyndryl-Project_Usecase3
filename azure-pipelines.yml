@@ -29,13 +29,20 @@ steps:
 # 📦 Setup virtual environment, install dependencies, and run script
 - bash: |
     set -e
+
     echo "🐍 Creating Python virtual environment..."
     python3 -m venv venv
+
+    echo "📦 Activating virtual environment..."
     source venv/bin/activate
 
     echo "📦 Installing Azure SDK packages..."
     python -m pip install --upgrade pip
     python -m pip install --cache-dir $PIP_CACHE_DIR azure-identity azure-mgmt-compute azure-monitor-query
+
+    echo "🔍 Verifying installation..."
+    python -m pip show azure-identity
+    python -m pip show azure-mgmt-compute
     python -m pip show azure-monitor-query
 
     echo "🚀 Running Multi-Cloud Auto Manager..."
