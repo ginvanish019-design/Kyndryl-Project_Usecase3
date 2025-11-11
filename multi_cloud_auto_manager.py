@@ -4,7 +4,7 @@
 # Author: Anish Martin
 # ==============================================================
 
-from datetime import datetime
+from datetime import datetime, timezone
 from azure.identity import DefaultAzureCredential
 from azure.mgmt.compute import ComputeManagementClient
 
@@ -46,15 +46,18 @@ def azure_manage_vms():
         try:
             name = vm.name
             rg = vm.id.split("/")[4]
-            # ✅ Correct syntax: fetch instance view
-            instance_view = azure_compute.virtual_machines.instance_view(rg, name)
-            statuses = instance_view.statuses[-1].display_status
-            print(f"🖥️ VM: {name} | Resource Group: {rg} | Status: {statuses}")
 
-            # Stop idle/running VMs
-            if "running" in statuses.lower():
+            # ✅ Fetch the instance view correctly
+            instance_view = azure_compute.virtual_machines.instance_view(resource_group_name=rg, vm_name=name)
+            statuses = [s.display_status for s in instance_view.statuses if s.code.startswith("PowerState/")]
+            power_state = statuses[0] if statuses else "Unknown"
+
+            print(f"🖥️ VM: {name} | Resource Group: {rg} | Status: {power_state}")
+
+            # Stop running VMs
+            if "running" in power_state.lower():
                 print(f"🛑 Stopping Azure VM: {name}")
-                azure_compute.virtual_machines.begin_power_off(rg, name)
+                azure_compute.virtual_machines.begin_power_off(resource_group_name=rg, vm_name=name)
             else:
                 print(f"✅ VM {name} already stopped or inactive.")
 
@@ -66,7 +69,7 @@ def azure_manage_vms():
 # =======================================================
 def main():
     print("=" * 70)
-    print(f"☁️ Azure Auto Manager Started at {datetime.utcnow()}")
+    print(f"☁️ Azure Auto Manager Started at {datetime.now(timezone.utc).isoformat()}")
     print("=" * 70)
 
     try:
