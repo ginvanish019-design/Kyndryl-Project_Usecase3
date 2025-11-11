@@ -17,23 +17,12 @@ steps:
     echo "✅ Python is installed."
   displayName: "Verify Python Installation"
 
-# 💾 Cache pip packages
-- task: Cache@2
-  inputs:
-    key: 'pip | "$(Agent.OS)" | requirements.txt'
-    path: $(PIP_CACHE_DIR)
-    restoreKeys: |
-      pip | "$(Agent.OS)"
-  displayName: "Cache pip packages"
-
 # 📦 Install required Azure SDK dependencies
 - bash: |
     set -e
     echo "📦 Installing Azure SDK dependencies..."
-    # Ensure pip cache directory is set
-    export PIP_CACHE_DIR=$(PIP_CACHE_DIR)
     python3 -m pip install --upgrade pip
-    python3 -m pip install --cache-dir $PIP_CACHE_DIR azure-identity azure-mgmt-compute azure-monitor-query
+    python3 -m pip install azure-identity azure-mgmt-compute azure-monitor-query
     echo "🔍 Verifying Azure Monitor package installation..."
     python3 -m pip show azure-monitor-query
     echo "✅ Azure SDK dependencies installed successfully."
