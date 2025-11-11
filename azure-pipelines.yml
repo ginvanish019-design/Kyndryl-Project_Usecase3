@@ -9,17 +9,31 @@ pool:
 steps:
 - checkout: self
 
+# =====================================
+# 🐍 Check Python Version
+# =====================================
 - bash: |
     echo "🐍 Checking Python version..."
     python3 --version
   displayName: "Check Python Version"
 
+# =====================================
+# 📦 Install Dependencies
+# =====================================
 - bash: |
-    echo "📦 Installing Azure SDK dependencies..."
-    python3 -m pip install --upgrade pip --break-system-packages
-    pip install azure-identity azure-mgmt-compute azure-mgmt-resource --break-system-packages
-  displayName: "Install Azure SDKs (Linux)"
+    echo "📦 Installing required Azure SDK packages..."
+    python3 -m pip install --upgrade pip
+    python3 -m pip install --upgrade \
+      azure-identity \
+      azure-mgmt-compute \
+      azure-mgmt-resource \
+      azure-monitor-query
+    echo "✅ Dependencies installed successfully."
+  displayName: "Install Azure SDK Dependencies"
 
+# =====================================
+# 🚀 Run Script
+# =====================================
 - bash: |
     echo "🚀 Running Multi-Cloud Auto Manager..."
     python3 multi_cloud_auto_manager.py
