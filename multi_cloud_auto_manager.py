@@ -1,6 +1,6 @@
 # ==============================================================
 # Azure Auto Manager
-# Description: Automatically manages Azure Virtual Machines
+# Description: Checks and manages a specific Azure Virtual Machine
 # Author: Anish Martin
 # ==============================================================
 
@@ -12,6 +12,7 @@ from azure.mgmt.compute import ComputeManagementClient
 # Configuration
 # =======================================================
 AZURE_SUBSCRIPTION_ID = "c070b0a7-e56f-4350-a4bd-3c01811a284c"
+TARGET_VM_NAME = "anish_test-vm"  # 👈 Specify the VM name here
 
 # =======================================================
 # Azure Setup
@@ -28,41 +29,44 @@ except Exception as e:
 # =======================================================
 # Azure Helpers
 # =======================================================
-def get_azure_vms():
-    """Fetch all Azure VMs."""
-    if not azure_compute:
-        return []
-    return list(azure_compute.virtual_machines.list_all())
+def find_vm_by_name(vm_name):
+    """Find the VM and return its object and resource group."""
+    vms = azure_compute.virtual_machines.list_all()
+    for vm in vms:
+        if vm.name.lower() == vm_name.lower():
+            rg = vm.id.split("/")[4]
+            return vm, rg
+    return None, None
 
-def azure_manage_vms():
-    """Check and manage Azure VMs."""
-    print("\n🔍 Checking Azure VMs...")
-    vms = get_azure_vms()
-    if not vms:
-        print("No Azure VMs found.")
+def check_vm_status(vm_name):
+    """Check and optionally manage the specified Azure VM."""
+    print(f"\n🔍 Searching for VM: {vm_name} ...")
+    vm, rg = find_vm_by_name(vm_name)
+
+    if not vm:
+        print(f"❌ VM '{vm_name}' not found in the subscription.")
         return
 
-    for vm in vms:
-        try:
-            name = vm.name
-            rg = vm.id.split("/")[4]
+    try:
+        # ✅ Fetch the instance view
+        instance_view = azure_compute.virtual_machines.instance_view(
+            resource_group_name=rg, vm_name=vm_name
+        )
+        statuses = [s.display_status for s in instance_view.statuses if s.code.startswith("PowerState/")]
+        power_state = statuses[0] if statuses else "Unknown"
 
-            # ✅ Fetch the instance view correctly
-            instance_view = azure_compute.virtual_machines.instance_view(resource_group_name=rg, vm_name=name)
-            statuses = [s.display_status for s in instance_view.statuses if s.code.startswith("PowerState/")]
-            power_state = statuses[0] if statuses else "Unknown"
+        print(f"🖥️ VM: {vm_name} | Resource Group: {rg} | Status: {power_state}")
 
-            print(f"🖥️ VM: {name} | Resource Group: {rg} | Status: {power_state}")
+        # Optionally stop if running
+        if "running" in power_state.lower():
+            print(f"🛑 Stopping Azure VM: {vm_name} ...")
+            azure_compute.virtual_machines.begin_power_off(rg, vm_name)
+            print("✅ Stop command sent successfully.")
+        else:
+            print(f"⚙️ VM '{vm_name}' is not running. No action needed.")
 
-            # Stop running VMs
-            if "running" in power_state.lower():
-                print(f"🛑 Stopping Azure VM: {name}")
-                azure_compute.virtual_machines.begin_power_off(resource_group_name=rg, vm_name=name)
-            else:
-                print(f"✅ VM {name} already stopped or inactive.")
-
-        except Exception as e:
-            print(f"⚠️ Failed to manage VM {vm.name}: {e}")
+    except Exception as e:
+        print(f"⚠️ Failed to check or manage VM '{vm_name}': {e}")
 
 # =======================================================
 # MAIN WORKFLOW
@@ -72,10 +76,10 @@ def main():
     print(f"☁️ Azure Auto Manager Started at {datetime.now(timezone.utc).isoformat()}")
     print("=" * 70)
 
-    try:
-        azure_manage_vms()
-    except Exception as e:
-        print(f"❌ Error: {e}")
+    if azure_compute:
+        check_vm_status(TARGET_VM_NAME)
+    else:
+        print("❌ Azure connection not established.")
 
     print("\n✅ Azure VM management completed successfully.")
 
