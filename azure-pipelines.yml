@@ -17,31 +17,28 @@ steps:
     echo "✅ Python is installed."
   displayName: "Verify Python Installation"
 
-# 💾 Cache pip packages
+# 💾 Cache pip packages (fixed key)
 - task: Cache@2
   inputs:
-    key: 'pip | "$(Agent.OS)" | requirements.txt'
+    key: 'pip | "$(Agent.OS)" | azure-sdk'
     path: $(PIP_CACHE_DIR)
     restoreKeys: |
       pip | "$(Agent.OS)"
   displayName: "Cache pip packages"
 
-# 📦 Install dependencies from requirements.txt
+# 📦 Install required Azure SDK dependencies
 - bash: |
     set -e
-    echo "📦 Installing Python dependencies..."
+    echo "📦 Installing Azure SDK packages..."
     export PIP_CACHE_DIR=$(PIP_CACHE_DIR)
     python3 -m pip install --upgrade pip
-    python3 -m pip install --cache-dir $PIP_CACHE_DIR -r requirements.txt
+    python3 -m pip install --cache-dir $PIP_CACHE_DIR azure-identity azure-mgmt-compute azure-monitor-query
     echo "🔍 Verifying installation..."
     python3 -m pip show azure-monitor-query
-    echo "✅ All dependencies installed successfully."
-  displayName: "Install Python Dependencies"
+    echo "✅ Azure SDK dependencies installed successfully."
+  displayName: "Install Azure SDK Dependencies"
 
 # 🚀 Run Multi-Cloud Auto Manager
 - bash: |
     set -e
-    echo "🚀 Running Multi-Cloud Auto Manager..."
-    python3 multi_cloud_auto_manager.py
-    echo "✅ Multi-Cloud Auto Manager completed successfully."
-  displayName: "Run Multi-Cloud Auto Manager"
+    echo "🚀 R
