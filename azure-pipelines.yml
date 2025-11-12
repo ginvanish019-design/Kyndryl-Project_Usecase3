@@ -4,47 +4,58 @@ trigger:
       - main
 
 pool:
-  name: 'Anish_Agent'  # Your self-hosted agent
+  name: 'Anish_Agent'  # Self-hosted agent
 
 steps:
+# 🌀 Checkout repo
 - checkout: self
 
 # 🐍 Verify Python installation
 - bash: |
     set -e
     echo "🐍 Checking Python version..."
-    python3 --version
-    echo "✅ Python is installed."
+    python3 --version || { echo "❌ Python not found!"; exit 1; }
+    echo "✅ Python is installed and accessible."
   displayName: "Verify Python Installation"
 
 # 💾 Cache pip packages
 - task: Cache@2
   inputs:
-    key: 'pip | "$(Agent.OS)" | azure-sdk-venv'
+    key: 'pip | "$(Agent.OS)" | v1'
     path: $(PIP_CACHE_DIR)
     restoreKeys: |
       pip | "$(Agent.OS)"
   displayName: "Cache pip packages"
 
-# 📦 Setup virtual environment, install dependencies, and run script
+# ⚙️ Setup virtual environment, install dependencies, and run script
 - bash: |
     set -e
-
-    echo "🐍 Creating Python virtual environment..."
+    echo "-----------------------------------------------"
+    echo "🔧 Setting up Python virtual environment..."
     python3 -m venv venv
 
     echo "📦 Activating virtual environment..."
     source venv/bin/activate
 
-    echo "📦 Installing Azure SDK packages..."
+    echo "⬆️ Upgrading pip to latest version..."
     python -m pip install --upgrade pip
-    python -m pip install --cache-dir $PIP_CACHE_DIR azure-identity azure-mgmt-compute azure-monitor-query
 
-    echo "🔍 Verifying installation..."
-    python -m pip show azure-identity
-    python -m pip show azure-mgmt-compute
-    python -m pip show azure-monitor-query
+    echo "📥 Installing required Azure SDK packages..."
+    # Primary installation attempt with cache
+    python -m pip install --cache-dir $PIP_CACHE_DIR \
+      azure-identity azure-mgmt-compute azure-monitor-query || {
+        echo "⚠️ Cached install failed, retrying without cache..."
+        python -m pip install --no-cache-dir \
+          azure-identity azure-mgmt-compute azure-monitor-query
+      }
+
+    echo "🔍 Verifying installed packages..."
+    python -m pip show azure-identity || { echo "❌ azure-identity missing!"; exit 1; }
+    python -m pip show azure-mgmt-compute || { echo "❌ azure-mgmt-compute missing!"; exit 1; }
+    python -m pip show azure-monitor-query || { echo "❌ azure-monitor-query missing!"; exit 1; }
 
     echo "🚀 Running Multi-Cloud Auto Manager..."
     python multi_cloud_auto_manager.py
+
+    echo "✅ Script execution completed successfully!"
   displayName: "Setup venv, Install Dependencies & Run Script"
