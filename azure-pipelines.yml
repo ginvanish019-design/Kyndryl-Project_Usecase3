@@ -6,6 +6,9 @@ trigger:
 pool:
   name: 'Anish_Agent'  # Self-hosted agent
 
+variables:
+  PIP_CACHE_DIR: "$(Pipeline.Workspace)/.pip-cache"
+
 steps:
 # 🌀 Checkout repo
 - checkout: self
@@ -27,9 +30,13 @@ steps:
       pip | "$(Agent.OS)"
   displayName: "Cache pip packages"
 
-# ⚙️ Setup virtual environment, install dependencies, and run script
+# ⚙️ Setup venv, install dependencies, and run script
 - bash: |
     set -e
+
+    echo "📁 Ensuring pip cache directory exists..."
+    mkdir -p $PIP_CACHE_DIR
+
     echo "-----------------------------------------------"
     echo "🔧 Setting up Python virtual environment..."
     python3 -m venv venv
@@ -41,9 +48,9 @@ steps:
     python -m pip install --upgrade pip
 
     echo "📥 Installing required Azure SDK packages..."
-    # Primary installation attempt with cache
     python -m pip install --cache-dir $PIP_CACHE_DIR \
       azure-identity azure-mgmt-compute azure-monitor-query || {
+
         echo "⚠️ Cached install failed, retrying without cache..."
         python -m pip install --no-cache-dir \
           azure-identity azure-mgmt-compute azure-monitor-query
