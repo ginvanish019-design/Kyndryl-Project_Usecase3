@@ -40,13 +40,17 @@ steps:
     echo "⬆️ Upgrading pip to latest version..."
     python -m pip install --upgrade pip
 
-    echo "📥 Installing required Azure SDK packages..."
-    # Primary installation attempt with cache
+    echo "📥 Installing required Azure SDK packages (with pinned metrics version)..."
     python -m pip install --cache-dir $PIP_CACHE_DIR \
-      azure-identity azure-mgmt-compute azure-monitor-query || {
+      azure-identity \
+      azure-mgmt-compute \
+      azure-monitor-query==1.2.0 || {
+
         echo "⚠️ Cached install failed, retrying without cache..."
         python -m pip install --no-cache-dir \
-          azure-identity azure-mgmt-compute azure-monitor-query
+          azure-identity \
+          azure-mgmt-compute \
+          azure-monitor-query==1.2.0
       }
 
     echo "🔍 Verifying installed packages..."
