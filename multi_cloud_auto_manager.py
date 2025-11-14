@@ -13,8 +13,6 @@ from azure.mgmt.compute import ComputeManagementClient
 from azure.monitor.query import MetricsQueryClient
 from azure.monitor.query import MetricAggregationType
 
-
-
 # =======================================================
 # Configuration
 # =======================================================
@@ -23,7 +21,6 @@ TARGET_VM_NAME = "anish_test-vm"
 CPU_THRESHOLD = 70
 MEMORY_THRESHOLD = 70
 
-
 # =======================================================
 # Azure Setup
 # =======================================================
@@ -31,13 +28,15 @@ try:
     print("🔑 Authenticating to Azure...")
     azure_cred = DefaultAzureCredential()
     azure_compute = ComputeManagementClient(azure_cred, AZURE_SUBSCRIPTION_ID)
-    metrics_client = MetricsClient(azure_cred)
+
+    # ✔ Correct class
+    metrics_client = MetricsQueryClient(azure_cred)
+
     print("✅ Connected to Azure successfully.")
 except Exception as e:
     print(f"⚠️ Azure connection failed: {e}")
     azure_compute = None
     metrics_client = None
-
 
 # =======================================================
 # Helper Functions
@@ -62,7 +61,7 @@ def get_vm_metrics(resource_id):
             resource_id,
             metric_names=["Percentage CPU", "Available Memory Bytes"],
             timespan=f"{start_time}/{end_time}",
-            aggregations=["Average"],      # ✔ Updated syntax
+            aggregations=[MetricAggregationType.AVERAGE],
         )
 
         cpu_usage = 0
@@ -71,7 +70,6 @@ def get_vm_metrics(resource_id):
         for metric in response.metrics:
             name = metric.name.replace("\n", "").lower()
 
-            # Extract all values
             values = [
                 data.average
                 for ts in metric.timeseries
@@ -118,6 +116,7 @@ def spin_up_additional_vm(original_vm, resource_group):
             parameters=vm_params,
         )
         async_create.wait()
+
         print(f"✅ VM Created Successfully: {new_vm_name}")
 
     except Exception as e:
@@ -132,17 +131,15 @@ def monitor_vm_performance(vm_name):
         print(f"❌ VM '{vm_name}' not found.")
         return
 
-    resource_id = vm.id
-    cpu_usage, memory_usage = get_vm_metrics(resource_id)
+    cpu_usage, memory_usage = get_vm_metrics(vm.id)
 
     print(f"📊 VM Metrics → CPU: {cpu_usage}% | Memory: {memory_usage}%")
 
     if cpu_usage > CPU_THRESHOLD or memory_usage > MEMORY_THRESHOLD:
-        print(f"⚠️ High Utilization Detected!")
+        print("⚠️ High Utilization Detected!")
         spin_up_additional_vm(vm, rg)
     else:
         print("✅ Utilization normal. No action required.")
-
 
 # =======================================================
 # MAIN WORKFLOW
@@ -158,7 +155,6 @@ def main():
         print("❌ Azure connection not established.")
 
     print("\n✅ Azure VM monitoring completed.")
-
 
 if __name__ == "__main__":
     main()
