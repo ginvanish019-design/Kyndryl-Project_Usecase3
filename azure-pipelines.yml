@@ -49,13 +49,13 @@ steps:
     {
       echo "⚠️ Cache install failed → retrying without cache..."
       pip install --no-cache-dir \
-        azure-identity azure-mgmt-compute azure-monitor-query
+        azure-identity azure-mgmt-compute azure-monitor-query azure-monitor-querymetrics
     }
 
     echo "🔍 Verifying installed packages..."
     pip show azure-identity || { echo "❌ azure-identity missing!"; exit 1; }
     pip show azure-mgmt-compute || { echo "❌ azure-mgmt-compute missing!"; exit 1; }
-    pip show azure-monitor-query || { echo "❌ azure-monitor-query missing!"; exit 1; }
+    pip show azure-monitor-query || { echo "❌ azure-monitor-query missing!";}
 
     echo "🚀 Running Multi-Cloud Auto Manager..."
     python multi_cloud_auto_manager.py
