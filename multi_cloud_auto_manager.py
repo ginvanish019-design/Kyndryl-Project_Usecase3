@@ -10,8 +10,10 @@ from azure.identity import DefaultAzureCredential
 from azure.mgmt.compute import ComputeManagementClient
 
 # ✔ NEW Azure Monitor client
-from azure.monitor.query import MetricsQueryClient
+#from azure.monitor.query import MetricsQueryClient
 from azure.monitor.query import MetricAggregationType
+
+
 
 # =======================================================
 # Configuration
