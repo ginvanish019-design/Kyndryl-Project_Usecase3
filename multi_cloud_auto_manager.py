@@ -8,15 +8,15 @@ from datetime import datetime, timedelta, timezone
 import time
 from azure.identity import DefaultAzureCredential
 from azure.mgmt.compute import ComputeManagementClient
-from azure.monitor.query import MetricsQueryClient
+from azure.monitor.query import MetricsClient   # <-- Updated import for v2.0.0
 
 # =======================================================
 # Configuration
 # =======================================================
 AZURE_SUBSCRIPTION_ID = "c070b0a7-e56f-4350-a4bd-3c01811a284c"
-TARGET_VM_NAME = "anish_test-vm"        # 👈 Target VM to monitor
-CPU_THRESHOLD = 70                      # %
-MEMORY_THRESHOLD = 70                   # %
+TARGET_VM_NAME = "anish_test-vm"
+CPU_THRESHOLD = 70              # %
+MEMORY_THRESHOLD = 70           # %
 
 # =======================================================
 # Azure Setup
@@ -25,7 +25,7 @@ try:
     print("🔑 Authenticating to Azure...")
     azure_cred = DefaultAzureCredential()
     azure_compute = ComputeManagementClient(azure_cred, AZURE_SUBSCRIPTION_ID)
-    metrics_client = MetricsQueryClient(azure_cred)
+    metrics_client = MetricsClient(azure_cred)          # <-- Updated object
     print("✅ Connected to Azure successfully.")
 except Exception as e:
     print(f"⚠️ Azure connection failed: {e}")
@@ -43,6 +43,7 @@ def find_vm_by_name(vm_name):
             rg = vm.id.split("/")[4]
             return vm, rg
     return None, None
+
 
 def get_vm_metrics(resource_id):
     """Fetch CPU and Memory usage using Azure Monitor."""
@@ -62,21 +63,28 @@ def get_vm_metrics(resource_id):
 
         for metric in response.metrics:
             if metric.name.lower() == "percentage cpu":
-                cpu_data = [p.average for ts in metric.timeseries for p in ts.data if p.average is not None]
+                cpu_data = [
+                    p.average for ts in metric.timeseries for p in ts.data if p.average is not None
+                ]
                 if cpu_data:
                     cpu_usage = sum(cpu_data) / len(cpu_data)
+
             elif metric.name.lower() == "available memory bytes":
-                # Assume total memory = 8GB (adjust as needed)
+                # Assume total memory = 8GB
                 total_memory_bytes = 8 * 1024 * 1024 * 1024
-                mem_data = [p.average for ts in metric.timeseries for p in ts.data if p.average is not None]
+                mem_data = [
+                    p.average for ts in metric.timeseries for p in ts.data if p.average is not None
+                ]
                 if mem_data:
                     available_mem = sum(mem_data) / len(mem_data)
                     memory_usage = 100 - ((available_mem / total_memory_bytes) * 100)
 
         return round(cpu_usage, 2), round(memory_usage, 2)
+
     except Exception as e:
         print(f"⚠️ Failed to fetch metrics: {e}")
         return 0, 0
+
 
 def spin_up_additional_vm(original_vm, resource_group):
     """Spin up a new VM based on the existing VM configuration."""
@@ -98,13 +106,17 @@ def spin_up_additional_vm(original_vm, resource_group):
             parameters=vm_params,
         )
         async_create.wait()
+
         print(f"✅ Successfully created additional VM: {new_vm_name}")
+
     except Exception as e:
         print(f"⚠️ Failed to spin up new VM: {e}")
 
+
 def monitor_vm_performance(vm_name):
-    """Monitor CPU and Memory usage, trigger scale-up if threshold exceeded."""
+    """Monitor CPU and Memory usage and trigger VM scale-up."""
     print(f"\n🔍 Checking performance for VM: {vm_name}")
+
     vm, rg = find_vm_by_name(vm_name)
     if not vm:
         print(f"❌ VM '{vm_name}' not found.")
@@ -121,6 +133,7 @@ def monitor_vm_performance(vm_name):
     else:
         print(f"✅ Utilization is within normal range. No action needed.")
 
+
 # =======================================================
 # MAIN WORKFLOW
 # =======================================================
@@ -135,6 +148,7 @@ def main():
         print("❌ Azure connection not established.")
 
     print("\n✅ Azure VM monitoring completed successfully.")
+
 
 # =======================================================
 # Entry Point
