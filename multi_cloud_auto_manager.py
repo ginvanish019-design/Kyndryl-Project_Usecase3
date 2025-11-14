@@ -8,7 +8,8 @@ from datetime import datetime, timedelta, timezone
 import time
 from azure.identity import DefaultAzureCredential
 from azure.mgmt.compute import ComputeManagementClient
-from azure.monitor.query import MetricsClient
+from azure.monitor.query import MetricsQueryClient
+from azure.monitor.query import MetricAggregationType
 
 
 # =======================================================
@@ -27,7 +28,7 @@ try:
     print("🔑 Authenticating to Azure...")
     azure_cred = DefaultAzureCredential()
     azure_compute = ComputeManagementClient(azure_cred, AZURE_SUBSCRIPTION_ID)
-    metrics_client = MetricsClient(azure_cred)
+    metrics_client = MetricsQueryClient(azure_cred)
     print("✅ Connected to Azure successfully.")
 except Exception as e:
     print(f"⚠️ Azure connection failed: {e}")
@@ -57,37 +58,33 @@ def get_vm_metrics(resource_id):
         response = metrics_client.query_resource(
             resource_id,
             metric_names=["Percentage CPU", "Available Memory Bytes"],
-            timespan=f"{start_time}/{end_time}"
+            timespan=f"{start_time}/{end_time}",
+            aggregations=[MetricAggregationType.AVERAGE]
         )
 
         cpu_usage = 0
         memory_usage = 0
 
         for metric in response.metrics:
-            metric_name = metric.name.lower()
+            name = metric.name.lower()
 
-            # CPU Metric
-            if metric_name == "percentage cpu":
-                values = []
-                for ts in metric.timeseries:
-                    for data in ts.data:
-                        if data.average is not None:
-                            values.append(data.average)
-                if values:
-                    cpu_usage = sum(values) / len(values)
+            datapoints = []
+            for ts in metric.timeseries:
+                for d in ts.data:
+                    if d.average is not None:
+                        datapoints.append(d.average)
 
-            # Memory Metric
-            if metric_name == "available memory bytes":
-                values = []
-                for ts in metric.timeseries:
-                    for data in ts.data:
-                        if data.average is not None:
-                            values.append(data.average)
+            if not datapoints:
+                continue
 
-                if values:
-                    available = sum(values) / len(values)
-                    total_memory = 8 * 1024 * 1024 * 1024  # 8 GB assumption
-                    memory_usage = 100 - (available / total_memory) * 100
+            avg_value = sum(datapoints) / len(datapoints)
+
+            if name == "percentage cpu":
+                cpu_usage = avg_value
+
+            elif name == "available memory bytes":
+                total_memory = 8 * 1024 * 1024 * 1024  # 8GB assumption
+                memory_usage = 100 - ((avg_value / total_memory) * 100)
 
         return round(cpu_usage, 2), round(memory_usage, 2)
 
