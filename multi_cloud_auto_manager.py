@@ -1,5 +1,5 @@
 # ==============================================================
-# Azure Auto Manager
+# Azure Auto Manager (Updated for new Azure Monitor SDK)
 # Description: Monitors CPU & Memory usage and spins up a new VM if utilization exceeds threshold
 # Author: Anish Martin
 # ==============================================================
@@ -8,8 +8,9 @@ from datetime import datetime, timedelta, timezone
 import time
 from azure.identity import DefaultAzureCredential
 from azure.mgmt.compute import ComputeManagementClient
-from azure.monitor.query import MetricsQueryClient
-from azure.monitor.query import MetricAggregationType
+
+# ✔ NEW Azure Monitor client
+from azure.monitor.query import MetricsClient
 
 
 # =======================================================
@@ -28,7 +29,7 @@ try:
     print("🔑 Authenticating to Azure...")
     azure_cred = DefaultAzureCredential()
     azure_compute = ComputeManagementClient(azure_cred, AZURE_SUBSCRIPTION_ID)
-    metrics_client = MetricsQueryClient(azure_cred)
+    metrics_client = MetricsClient(azure_cred)
     print("✅ Connected to Azure successfully.")
 except Exception as e:
     print(f"⚠️ Azure connection failed: {e}")
@@ -50,7 +51,7 @@ def find_vm_by_name(vm_name):
 
 
 def get_vm_metrics(resource_id):
-    """Fetch CPU and Memory usage using Azure Monitor."""
+    """Fetch CPU & Memory usage using Azure Monitor (NEW API)."""
     try:
         end_time = datetime.utcnow()
         start_time = end_time - timedelta(minutes=10)
@@ -59,25 +60,27 @@ def get_vm_metrics(resource_id):
             resource_id,
             metric_names=["Percentage CPU", "Available Memory Bytes"],
             timespan=f"{start_time}/{end_time}",
-            aggregations=[MetricAggregationType.AVERAGE]
+            aggregations=["Average"],      # ✔ Updated syntax
         )
 
         cpu_usage = 0
         memory_usage = 0
 
         for metric in response.metrics:
-            name = metric.name.lower()
+            name = metric.name.replace("\n", "").lower()
 
-            datapoints = []
-            for ts in metric.timeseries:
-                for d in ts.data:
-                    if d.average is not None:
-                        datapoints.append(d.average)
+            # Extract all values
+            values = [
+                data.average
+                for ts in metric.timeseries
+                for data in ts.data
+                if data.average is not None
+            ]
 
-            if not datapoints:
+            if not values:
                 continue
 
-            avg_value = sum(datapoints) / len(datapoints)
+            avg_value = sum(values) / len(values)
 
             if name == "percentage cpu":
                 cpu_usage = avg_value
